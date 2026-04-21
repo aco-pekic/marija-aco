@@ -1,10 +1,23 @@
 import { supabase, isSupabaseReady } from 'src/lib/supabase';
 
-import type { Vibe, DashboardVibes, DashboardMemory, DashboardPerson, DashboardMemoryDraft } from './types';
+import { prepareImageForDisplayAndUpload } from './image-file';
+
+import type {
+  Vibe,
+  DashboardMedia,
+  DashboardVibes,
+  DashboardMemory,
+  DashboardPerson,
+  DashboardMediaTarget,
+  DashboardMemoryDraft,
+} from './types';
 
 const MEMORIES_TABLE = 'dashboard_memories';
 const VIBES_TABLE = 'dashboard_vibes';
 const MEMORIES_BUCKET = 'dashboard-memories';
+const MEDIA_TABLE = 'dashboard_media_settings';
+const MEDIA_BUCKET = 'dashboard-media';
+const MEDIA_ROW_ID = 'main';
 
 type DashboardMemoryRow = {
   id: string;
@@ -21,6 +34,12 @@ type DashboardVibeRow = {
   person: DashboardPerson;
   emoji: string;
   note: string | null;
+};
+
+type DashboardMediaRow = {
+  hero_image_url: string | null;
+  marija_avatar_url: string | null;
+  aco_avatar_url: string | null;
 };
 
 function mapMemoryRow(row: DashboardMemoryRow): DashboardMemory {
@@ -42,6 +61,22 @@ function getUploadPath(file: File) {
   const fileExt = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
   return `memories/${fileName}`;
+}
+
+function getMediaPath(target: DashboardMediaTarget, file: File) {
+  const fileExt = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
+  return `${target}/${fileName}`;
+}
+
+function mapMediaRow(row?: DashboardMediaRow | null): DashboardMedia {
+  if (!row) return {};
+
+  return {
+    heroImage: row.hero_image_url ?? undefined,
+    marijaAvatar: row.marija_avatar_url ?? undefined,
+    acoAvatar: row.aco_avatar_url ?? undefined,
+  };
 }
 
 async function uploadMemoryImage(file: File) {
@@ -77,7 +112,8 @@ export async function listDashboardMemories() {
 export async function createDashboardMemory(draft: DashboardMemoryDraft) {
   if (!isSupabaseReady) throw new Error('Supabase is not configured');
 
-  const imageUrl = await uploadMemoryImage(draft.imageFile);
+  const { file: preparedFile } = await prepareImageForDisplayAndUpload(draft.imageFile);
+  const imageUrl = await uploadMemoryImage(preparedFile);
 
   const { data, error } = await supabase
     .from(MEMORIES_TABLE)
@@ -139,4 +175,58 @@ export async function saveTodayVibe(args: { dayKey: string; person: DashboardPer
   );
 
   if (error) throw new Error(`Could not save today's vibe: ${error.message}`);
+}
+
+export async function loadDashboardMedia() {
+  if (!isSupabaseReady) return {};
+
+  const { data, error } = await supabase
+    .from(MEDIA_TABLE)
+    .select('hero_image_url, marija_avatar_url, aco_avatar_url')
+    .eq('id', MEDIA_ROW_ID)
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not load dashboard media: ${error.message}`);
+
+  return mapMediaRow((data as DashboardMediaRow | null) ?? null);
+}
+
+export async function saveDashboardMedia(args: { media: DashboardMedia }) {
+  if (!isSupabaseReady) return;
+
+  const { media } = args;
+
+  const { error } = await supabase.from(MEDIA_TABLE).upsert(
+    {
+      id: MEDIA_ROW_ID,
+      hero_image_url: media.heroImage ?? null,
+      marija_avatar_url: media.marijaAvatar ?? null,
+      aco_avatar_url: media.acoAvatar ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' }
+  );
+
+  if (error) throw new Error(`Could not save dashboard media: ${error.message}`);
+}
+
+export async function uploadDashboardMediaImage(args: { file: File; target: DashboardMediaTarget }) {
+  if (!isSupabaseReady) throw new Error('Supabase is not configured');
+
+  const { target, file } = args;
+  const prepared = await prepareImageForDisplayAndUpload(file);
+  const filePath = getMediaPath(target, prepared.file);
+
+  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(filePath, prepared.file, {
+    contentType: prepared.file.type,
+    cacheControl: '3600',
+    upsert: false,
+  });
+
+  if (error) throw new Error(`Image upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(filePath);
+  if (!data.publicUrl) throw new Error('Could not resolve uploaded image URL');
+
+  return { url: data.publicUrl, warning: prepared.warning };
 }

@@ -24,12 +24,24 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
 
+import { isImageCandidate, prepareImageForDisplayAndUpload } from '../image-file';
+
 import type { DashboardLocation, DashboardMemoryDraft } from '../types';
 
 type GeoOption = {
   name: string;
   coordinates: [lat: number, lng: number];
 };
+
+async function canPreviewObjectUrl(url: string) {
+  return new Promise<boolean>((resolve) => {
+    const img = new Image();
+
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
 
 type Props = {
   open: boolean;
@@ -41,6 +53,7 @@ type Props = {
 
 export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, submitError }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imageProcessIdRef = useRef(0);
 
   const today = useMemo(() => dayjs().format('YYYY-MM-DD'), []);
 
@@ -50,6 +63,9 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageLoadError, setImageLoadError] = useState<string | null>(null);
+  const [imageLoadWarning, setImageLoadWarning] = useState<string | null>(null);
+  const [isPreparingImage, setIsPreparingImage] = useState(false);
 
   const [location, setLocation] = useState<DashboardLocation | null>(null);
   const [geoQuery, setGeoQuery] = useState('');
@@ -61,12 +77,16 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
 
   useEffect(() => {
     if (!open) return;
+    imageProcessIdRef.current = 0;
     setAttemptedSubmit(false);
     setTitle('');
     setDescription('');
     setDate(today);
     setImageFile(null);
     setImagePreview(null);
+    setImageLoadError(null);
+    setImageLoadWarning(null);
+    setIsPreparingImage(false);
     setLocation(null);
     setGeoQuery('');
     setGeoOptions([]);
@@ -75,12 +95,33 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
   }, [open, today]);
 
   useEffect(() => {
-    if (!imageFile) return undefined;
+    if (!imageFile) {
+      setImagePreview(null);
+      return undefined;
+    }
 
     const objectUrl = URL.createObjectURL(imageFile);
-    setImagePreview(objectUrl);
+    let active = true;
 
-    return () => URL.revokeObjectURL(objectUrl);
+    (async () => {
+      const canPreview = await canPreviewObjectUrl(objectUrl);
+      if (!active) return;
+
+      if (canPreview) {
+        setImagePreview(objectUrl);
+      } else {
+        setImagePreview(null);
+        setImageLoadWarning((current) => {
+          if (current) return current;
+          return 'This image format cannot be previewed in your current browser.';
+        });
+      }
+    })();
+
+    return () => {
+      active = false;
+      URL.revokeObjectURL(objectUrl);
+    };
   }, [imageFile]);
 
   useEffect(() => {
@@ -180,28 +221,56 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
   const imageError = attemptedSubmit && !imageFile;
   const locationError = attemptedSubmit && !location;
 
-  const canSubmit = !!imageFile && !!date && !!location;
+  const canSubmit = !!imageFile && !!date && !!location && !isPreparingImage;
 
   const handlePickImage = () => fileInputRef.current?.click();
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const processId = imageProcessIdRef.current + 1;
+    imageProcessIdRef.current = processId;
+
     const nextFile = event.target.files?.[0] ?? null;
 
     if (!nextFile) {
       setImageFile(null);
+      setImagePreview(null);
+      setImageLoadError(null);
+      setImageLoadWarning(null);
       return;
     }
 
-    if (!nextFile.type.startsWith('image/')) {
+    if (!isImageCandidate(nextFile)) {
       setImageFile(null);
+      setImagePreview(null);
+      setImageLoadError('Please choose an image file.');
+      setImageLoadWarning(null);
       return;
     }
 
-    setImageFile(nextFile);
+    setIsPreparingImage(true);
+    setImageLoadError(null);
+    setImageLoadWarning(null);
+
+    try {
+      const prepared = await prepareImageForDisplayAndUpload(nextFile);
+      if (imageProcessIdRef.current !== processId) return;
+      setImageFile(prepared.file);
+      setImageLoadWarning(prepared.warning ?? null);
+    } catch (error) {
+      if (imageProcessIdRef.current !== processId) return;
+      setImageFile(null);
+      setImagePreview(null);
+      setImageLoadError(error instanceof Error ? error.message : 'Could not prepare image preview.');
+      setImageLoadWarning(null);
+    } finally {
+      if (imageProcessIdRef.current === processId) {
+        setIsPreparingImage(false);
+      }
+    }
   };
 
   const handleSubmit = () => {
-    if (submitting) return;
+    if (submitting || isPreparingImage) return;
 
     setAttemptedSubmit(true);
 
@@ -395,10 +464,21 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
                   >
                     {!imagePreview && (
                       <Stack spacing={0.75} alignItems="center">
-                        <Iconify icon="solar:gallery-add-bold-duotone" width={26} />
-                        <Typography variant="caption" sx={{ opacity: 0.72 }}>
-                          Upload image
-                        </Typography>
+                        {isPreparingImage ? (
+                          <>
+                            <CircularProgress size={22} />
+                            <Typography variant="caption" sx={{ opacity: 0.72 }}>
+                              Preparing preview…
+                            </Typography>
+                          </>
+                        ) : (
+                          <>
+                            <Iconify icon="solar:gallery-add-bold-duotone" width={26} />
+                            <Typography variant="caption" sx={{ opacity: 0.72 }}>
+                              Upload image
+                            </Typography>
+                          </>
+                        )}
                       </Stack>
                     )}
                   </Box>
@@ -406,17 +486,32 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
                   <Stack spacing={0.5} sx={{ flex: '1 1 auto', minWidth: 0 }}>
                     <Typography variant="subtitle2">Image</Typography>
                     <Typography variant="body2" sx={(theme) => ({ color: theme.vars.palette.text.secondary })}>
-                      {imageFile ? imageFile.name : 'Tap to choose an image (required)'}
+                      {isPreparingImage
+                        ? 'Preparing image…'
+                        : imageFile
+                          ? imageFile.name
+                          : 'Tap to choose an image (required)'}
                     </Typography>
                     {imageError && (
                       <Typography variant="caption" sx={(theme) => ({ color: theme.vars.palette.error.main })}>
                         Please add an image
                       </Typography>
                     )}
+                    {imageLoadError && !imageError && (
+                      <Typography variant="caption" sx={(theme) => ({ color: theme.vars.palette.error.main })}>
+                        {imageLoadError}
+                      </Typography>
+                    )}
+                    {imageLoadWarning && !imageLoadError && (
+                      <Typography variant="caption" sx={(theme) => ({ color: theme.vars.palette.warning.main })}>
+                        {imageLoadWarning}
+                      </Typography>
+                    )}
                     <Box sx={{ pt: 0.75 }}>
                       <Button
                         size="small"
                         variant="contained"
+                        disabled={isPreparingImage || submitting}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -480,10 +575,10 @@ export function AddMemoryDialog({ open, onClose, onSubmit, submitting = false, s
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={!canSubmit || submitting}
+          disabled={!canSubmit || submitting || isPreparingImage}
           startIcon={<Iconify icon="solar:add-square-bold-duotone" />}
         >
-          {submitting ? 'Saving…' : 'Add memory'}
+          {submitting ? 'Saving…' : isPreparingImage ? 'Preparing…' : 'Add memory'}
         </Button>
       </DialogActions>
     </Dialog>

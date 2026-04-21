@@ -16,6 +16,21 @@ type Props = {
 };
 
 export function DashboardQuickMemories({ places }: Props) {
+  const items = places.flatMap((place) =>
+    place.memories.map((memory) => ({ place: place.name, ...memory }))
+  );
+
+  if (!items.length) {
+    return (
+      <Box sx={{ mt: { xs: 3, md: 4 } }}>
+        <Typography variant="h6">Quick Memories</Typography>
+        <Typography variant="body2" sx={(theme) => ({ mt: 0.75, color: theme.vars.palette.text.secondary })}>
+          Add your first memory and it will appear here.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ mt: { xs: 3, md: 4 } }}>
       <Stack
@@ -42,10 +57,7 @@ export function DashboardQuickMemories({ places }: Props) {
         }}
       >
         <Stack direction="row" spacing={2} sx={{ width: 'max-content' }}>
-          {places
-            .flatMap((p) => p.memories.map((m) => ({ place: p.name, ...m })))
-            .slice(0, 4)
-            .map((item) => (
+          {items.slice(0, 4).map((item) => (
               <Card
                 key={`${item.place}-${item.label}`}
                 sx={(theme) => ({

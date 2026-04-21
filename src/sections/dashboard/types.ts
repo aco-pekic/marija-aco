@@ -42,3 +42,11 @@ export type DashboardLocation = {
   coordinates: [lat: number, lng: number];
   source: 'device' | 'search';
 };
+
+export type DashboardMediaTarget = 'hero' | 'marija' | 'aco';
+
+export type DashboardMedia = {
+  heroImage?: string;
+  marijaAvatar?: string;
+  acoAvatar?: string;
+};

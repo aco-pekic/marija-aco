@@ -17,6 +17,7 @@ import { useAuthContext } from 'src/auth/hooks';
 import { DASHBOARD_PLACES } from './data';
 import { DashboardHero } from './components/dashboard-hero';
 import { DashboardVibes } from './components/dashboard-vibes';
+import { prepareImageForDisplayAndUpload } from './image-file';
 import { TodayVibeDialog } from './components/today-vibe-dialog';
 import { AddMemoryDialog } from './components/add-memory-dialog';
 import { DashboardStoryCard } from './components/dashboard-story-card';
@@ -25,21 +26,69 @@ import { DashboardBottomNav } from './components/dashboard-bottom-nav';
 import { DashboardUserMemories } from './components/dashboard-user-memories';
 import { DashboardQuickMemories } from './components/dashboard-quick-memories';
 import { DashboardLoveGlobeSection } from './components/dashboard-love-globe-section';
+import { DashboardMediaViewerDialog } from './components/dashboard-media-viewer-dialog';
 import { DashboardPlaceGalleryDialog } from './components/dashboard-place-gallery-dialog';
 import {
   saveTodayVibe,
   loadTodayVibes,
+  saveDashboardMedia,
+  loadDashboardMedia,
   createDashboardMemory,
   listDashboardMemories,
+  uploadDashboardMediaImage,
 } from './supabase';
 
-import type { Vibe, GlobePlace, DashboardPerson, DashboardMemory, DashboardVibesStorage } from './types';
+import type {
+  Vibe,
+  GlobePlace,
+  DashboardMedia,
+  DashboardPerson,
+  DashboardMemory,
+  DashboardMediaTarget,
+  DashboardVibesStorage,
+} from './types';
 
 const VIBES_STORAGE_KEY = 'dashboard:vibes:v1';
+const MEDIA_STORAGE_KEY = 'dashboard:media:v1';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return 'Something went wrong. Please try again.';
+}
+
+function toPlaceId(name: string, coordinates: [number, number]) {
+  const slug =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'place';
+
+  return `memory-${slug}-${coordinates[0].toFixed(4)}-${coordinates[1].toFixed(4)}`;
+}
+
+function getMediaTargetMeta(target: DashboardMediaTarget) {
+  if (target === 'hero') {
+    return {
+      title: 'Hero Image',
+      subtitle: 'Your dashboard cover photo',
+      key: 'heroImage' as const,
+    };
+  }
+
+  if (target === 'marija') {
+    return {
+      title: 'Marija Avatar',
+      subtitle: 'Tap and hold to inspect details, then edit below',
+      key: 'marijaAvatar' as const,
+    };
+  }
+
+  return {
+    title: 'Aco Avatar',
+    subtitle: 'Tap and hold to inspect details, then edit below',
+    key: 'acoAvatar' as const,
+  };
 }
 
 export function DashboardView() {
@@ -50,6 +99,7 @@ export function DashboardView() {
   const [selectedPlace, setSelectedPlace] = useState<GlobePlace | null>(null);
   const [isAddMemoryOpen, setIsAddMemoryOpen] = useState(false);
   const [isTodayVibeOpen, setIsTodayVibeOpen] = useState(false);
+  const [activeMediaTarget, setActiveMediaTarget] = useState<DashboardMediaTarget | null>(null);
 
   const [isSavingMemory, setIsSavingMemory] = useState(false);
   const [memoryLoadError, setMemoryLoadError] = useState<string | null>(null);
@@ -58,6 +108,10 @@ export function DashboardView() {
   const [isSavingVibes, setIsSavingVibes] = useState(false);
   const [vibeSaveError, setVibeSaveError] = useState<string | null>(null);
   const [didHydrateRemoteVibes, setDidHydrateRemoteVibes] = useState(!isSupabaseReady);
+
+  const [isSavingMedia, setIsSavingMedia] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [mediaWarning, setMediaWarning] = useState<string | null>(null);
 
   const todayKey = dayjs().format('YYYY-MM-DD');
   const defaultVibes = useMemo(
@@ -70,10 +124,21 @@ export function DashboardView() {
     { dayKey: todayKey, vibes: defaultVibes }
   );
 
+  const { state: mediaStorage, setState: setMediaStorage } = useLocalStorage<DashboardMedia>(
+    MEDIA_STORAGE_KEY,
+    {}
+  );
+
   const vibesStorageRef = useRef(vibesStorage);
+  const mediaStorageRef = useRef(mediaStorage);
+
   useEffect(() => {
     vibesStorageRef.current = vibesStorage;
   }, [vibesStorage]);
+
+  useEffect(() => {
+    mediaStorageRef.current = mediaStorage;
+  }, [mediaStorage]);
 
   const resetAt = useMemo(
     () => dayjs(`${todayKey}T00:00:00`).add(1, 'day').startOf('day').toDate(),
@@ -125,12 +190,58 @@ export function DashboardView() {
   );
 
   const memoryObjectUrlsRef = useRef<string[]>([]);
+  const mediaObjectUrlsRef = useRef<string[]>([]);
   const [memories, setMemories] = useState<DashboardMemory[]>([]);
+
+  const memoryDrivenPlaces = useMemo<GlobePlace[]>(() => {
+    const groupedPlaces = new Map<string, GlobePlace>();
+
+    for (const memory of memories) {
+      const [lat, lng] = memory.location.coordinates;
+      const groupKey = `${memory.location.name}|${lat.toFixed(6)}|${lng.toFixed(6)}`;
+      const existing = groupedPlaces.get(groupKey);
+      const memoryCard = {
+        src: memory.imageSrc,
+        label: memory.title ?? memory.description ?? memory.location.name,
+        date: memory.date,
+      };
+
+      if (existing) {
+        existing.memories.push(memoryCard);
+        continue;
+      }
+
+      groupedPlaces.set(groupKey, {
+        id: toPlaceId(memory.location.name, memory.location.coordinates),
+        name: memory.location.name,
+        status: 'visited',
+        coordinates: memory.location.coordinates,
+        memories: [memoryCard],
+      });
+    }
+
+    return Array.from(groupedPlaces.values()).map((place) => ({
+      ...place,
+      memories: [...place.memories].sort((a, b) => b.date.localeCompare(a.date)),
+    }));
+  }, [memories]);
+
+  const wishlistPlaces = useMemo(
+    () => DASHBOARD_PLACES.filter((place) => place.status === 'wishlist'),
+    []
+  );
+
+  const globePlaces = useMemo(
+    () => [...memoryDrivenPlaces, ...wishlistPlaces],
+    [memoryDrivenPlaces, wishlistPlaces]
+  );
 
   useEffect(
     () => () => {
       memoryObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
       memoryObjectUrlsRef.current = [];
+      mediaObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      mediaObjectUrlsRef.current = [];
     },
     []
   );
@@ -157,6 +268,27 @@ export function DashboardView() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseReady) return undefined;
+
+    let active = true;
+
+    (async () => {
+      try {
+        const remoteMedia = await loadDashboardMedia();
+        if (!active) return;
+        setMediaStorage({ ...mediaStorageRef.current, ...remoteMedia });
+      } catch (error) {
+        if (!active) return;
+        setMediaError(getErrorMessage(error));
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [setMediaStorage]);
 
   useEffect(() => {
     if (!isSupabaseReady) return undefined;
@@ -212,6 +344,66 @@ export function DashboardView() {
     todayKey,
   ]);
 
+  const heroImage = mediaStorage.heroImage;
+  const marijaAvatar = mediaStorage.marijaAvatar;
+  const acoAvatar = mediaStorage.acoAvatar;
+
+  const activeMediaMeta = useMemo(
+    () => (activeMediaTarget ? getMediaTargetMeta(activeMediaTarget) : null),
+    [activeMediaTarget]
+  );
+
+  const activeMediaSrc = useMemo(() => {
+    if (!activeMediaMeta) return undefined;
+
+    if (activeMediaMeta.key === 'heroImage') {
+      return heroImage ?? '/assets/background/background-4.jpg';
+    }
+
+    return mediaStorage[activeMediaMeta.key];
+  }, [activeMediaMeta, heroImage, mediaStorage]);
+
+  const openMediaTarget = useCallback((target: DashboardMediaTarget) => {
+    setMediaError(null);
+    setMediaWarning(null);
+    setActiveMediaTarget(target);
+  }, []);
+
+  const handleChangeMedia = useCallback(
+    async (file: File) => {
+      if (!activeMediaTarget || isSavingMedia) return;
+
+      setIsSavingMedia(true);
+      setMediaError(null);
+      setMediaWarning(null);
+
+      const key = getMediaTargetMeta(activeMediaTarget).key;
+
+      try {
+        if (isSupabaseReady) {
+          const uploaded = await uploadDashboardMediaImage({ file, target: activeMediaTarget });
+          const nextMedia = { ...mediaStorageRef.current, [key]: uploaded.url };
+
+          await saveDashboardMedia({ media: nextMedia });
+          setMediaStorage(nextMedia);
+          setMediaWarning(uploaded.warning ?? null);
+        } else {
+          const prepared = await prepareImageForDisplayAndUpload(file);
+          const localUrl = URL.createObjectURL(prepared.file);
+
+          mediaObjectUrlsRef.current.push(localUrl);
+          setMediaStorage({ ...mediaStorageRef.current, [key]: localUrl });
+          setMediaWarning(prepared.warning ?? null);
+        }
+      } catch (error) {
+        setMediaError(getErrorMessage(error));
+      } finally {
+        setIsSavingMedia(false);
+      }
+    },
+    [activeMediaTarget, isSavingMedia, setMediaStorage]
+  );
+
   return (
     <DashboardContent maxWidth="xl" disablePadding sx={{ pb: { xs: 14, md: 4 } }}>
       <Box
@@ -222,7 +414,13 @@ export function DashboardView() {
           bgcolor: theme.vars.palette.background.default,
         })}
       >
-        <DashboardHero />
+        <DashboardHero
+          backgroundImage={heroImage}
+          marijaAvatarSrc={marijaAvatar}
+          acoAvatarSrc={acoAvatar}
+          onOpenHero={() => openMediaTarget('hero')}
+          onOpenAvatar={(person) => openMediaTarget(person)}
+        />
         <DashboardStoryCard />
 
         <Card
@@ -269,14 +467,14 @@ export function DashboardView() {
             <DashboardUserMemories memories={memories} />
 
             <DashboardLoveGlobeSection
-              places={DASHBOARD_PLACES}
+              places={globePlaces}
               onOpenMap={() => setIsMapOpen(true)}
               onOpenPlace={(placeId) =>
-                setSelectedPlace(DASHBOARD_PLACES.find((p) => p.id === placeId) ?? null)
+                setSelectedPlace(globePlaces.find((place) => place.id === placeId) ?? null)
               }
             />
 
-            <DashboardQuickMemories places={DASHBOARD_PLACES} />
+            <DashboardQuickMemories places={memoryDrivenPlaces} />
 
             <Box sx={{ height: { xs: 16, md: 24 } }} />
           </Box>
@@ -285,7 +483,7 @@ export function DashboardView() {
 
       <DashboardMapDialog
         open={isMapOpen}
-        places={DASHBOARD_PLACES}
+        places={globePlaces}
         onClose={() => setIsMapOpen(false)}
         onSelectPlace={(place) => setSelectedPlace(place)}
       />
@@ -336,6 +534,18 @@ export function DashboardView() {
             setIsSavingMemory(false);
           }
         }}
+      />
+
+      <DashboardMediaViewerDialog
+        open={!!activeMediaTarget && !!activeMediaMeta}
+        title={activeMediaMeta?.title ?? ''}
+        subtitle={activeMediaMeta?.subtitle ?? ''}
+        imageSrc={activeMediaSrc}
+        onClose={() => setActiveMediaTarget(null)}
+        onChangeImage={handleChangeMedia}
+        isSaving={isSavingMedia}
+        error={mediaError}
+        warning={mediaWarning}
       />
 
       <TodayVibeDialog
