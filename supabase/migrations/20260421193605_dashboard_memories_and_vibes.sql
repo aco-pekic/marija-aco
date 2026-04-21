@@ -68,7 +68,7 @@ values (
   'dashboard-memories',
   true,
   10485760,
-  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  null
 )
 on conflict (id) do update
 set
