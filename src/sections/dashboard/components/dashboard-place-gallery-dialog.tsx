@@ -33,7 +33,7 @@ export function DashboardPlaceGalleryDialog({ place, onClose }: Props) {
               variant="body2"
               sx={(theme) => ({ color: varAlpha(theme.vars.palette.text.primaryChannel, 0.65) })}
             >
-              Mini gallery
+              Mini galerija
             </Typography>
           </Stack>
           <IconButton onClick={onClose}>

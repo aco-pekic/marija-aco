@@ -18,6 +18,9 @@ export const routesSection: RouteObject[] = [
     element: <Navigate to={CONFIG.auth.redirectPath} replace />,
   },
 
+  // Shortcuts
+  { path: 'map', element: <Navigate to="/dashboard/map" replace /> },
+
   // Auth
   ...authRoutes,
 

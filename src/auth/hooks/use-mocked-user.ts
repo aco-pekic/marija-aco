@@ -1,33 +1,60 @@
-import { _mock } from 'src/_mock';
+import { useLocalStorage } from 'minimal-shared/hooks';
 
-// To get the user from the <AuthContext/>, you can use
+import { DASHBOARD_MEDIA_STORAGE_KEY } from 'src/sections/dashboard/constants';
 
-// Change:
-// import { useMockedUser } from 'src/auth/hooks';
-// const { user } = useMockedUser();
+import { ACCOUNT_PROFILES } from 'src/auth/context/jwt/profiles';
+import { normalizeAccountId, getSessionAccountId } from 'src/auth/context/jwt/utils';
 
-// To:
-// import { useAuthContext } from 'src/auth/hooks';
-// const { user } = useAuthContext();
+import { useAuthContext } from './use-auth-context';
 
 // ----------------------------------------------------------------------
 
+type DashboardMediaCache = {
+  marijaAvatar?: string;
+  acoAvatar?: string;
+};
+
 export function useMockedUser() {
-  const user = {
-    id: '8864c717-587d-472a-929a-8e5f298024da-0',
-    displayName: 'Jaydon Frankie',
-    email: 'demo@minimals.cc',
-    photoURL: _mock.image.avatar(24),
-    phoneNumber: _mock.phoneNumber(1),
-    country: _mock.countryNames(1),
-    address: '90210 Broadway Blvd',
-    state: 'California',
-    city: 'San Francisco',
-    zipCode: '94116',
-    about: 'Praesent turpis. Phasellus viverra nulla ut metus varius laoreet. Phasellus tempus.',
-    role: 'admin',
-    isPublic: true,
+  const { user } = useAuthContext();
+  const { state: dashboardMedia } = useLocalStorage<DashboardMediaCache>(
+    DASHBOARD_MEDIA_STORAGE_KEY,
+    {}
+  );
+
+  const resolveProfile = (accountId: 'marija' | 'aco') => {
+    const baseProfile = ACCOUNT_PROFILES[accountId];
+    const photoURL =
+      (accountId === 'marija' ? dashboardMedia.marijaAvatar : dashboardMedia.acoAvatar) ??
+      baseProfile.photoURL;
+
+    return { ...baseProfile, photoURL };
   };
 
-  return { user };
+  const sessionAccountId = typeof window !== 'undefined' ? getSessionAccountId() : null;
+
+  if (sessionAccountId) {
+    return { user: resolveProfile(sessionAccountId) };
+  }
+
+  const normalizedUserAccountId = normalizeAccountId(
+    typeof user === 'object' && user
+      ? String((user as any).accountId ?? (user as any).id ?? '')
+      : null
+  );
+
+  if (normalizedUserAccountId) {
+    return { user: resolveProfile(normalizedUserAccountId) };
+  }
+
+  if (user) return { user };
+
+  return {
+    user: {
+      id: 'guest',
+      displayName: 'Guest',
+      email: 'guest@app.local',
+      photoURL: '/assets/images/mock/avatar/avatar-1.webp',
+      role: 'guest',
+    },
+  };
 }

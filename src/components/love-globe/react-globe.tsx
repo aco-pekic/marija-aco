@@ -19,6 +19,7 @@ export type LoveGlobePlace = {
   status: 'visited' | 'wishlist';
   coordinates: [lat: number, lng: number];
   imageSrc?: string;
+  markerVariant?: 'photo' | 'heart';
 };
 
 const markerTextureCache = new Map<string, THREE.Texture>();
@@ -88,6 +89,49 @@ function drawPinTexture(
   }
 }
 
+function drawHeartGlyph(context: CanvasRenderingContext2D, size: number) {
+  const center = size / 2;
+  const heartSize = size * 0.28;
+  const x = center;
+  const y = center - heartSize * 0.18;
+  const topCurveHeight = heartSize * 0.32;
+
+  context.save();
+  context.beginPath();
+  context.moveTo(x, y + topCurveHeight);
+  context.bezierCurveTo(x, y, x - heartSize / 2, y, x - heartSize / 2, y + topCurveHeight);
+  context.bezierCurveTo(
+    x - heartSize / 2,
+    y + (heartSize + topCurveHeight) / 2,
+    x,
+    y + (heartSize + topCurveHeight) / 2,
+    x,
+    y + heartSize
+  );
+  context.bezierCurveTo(
+    x,
+    y + (heartSize + topCurveHeight) / 2,
+    x + heartSize / 2,
+    y + (heartSize + topCurveHeight) / 2,
+    x + heartSize / 2,
+    y + topCurveHeight
+  );
+  context.bezierCurveTo(x + heartSize / 2, y, x, y, x, y + topCurveHeight);
+  context.closePath();
+
+  context.shadowColor = 'rgba(15, 23, 42, 0.45)';
+  context.shadowBlur = size * 0.035;
+  context.fillStyle = '#ffffff';
+  context.fill();
+  context.shadowBlur = 0;
+
+  context.strokeStyle = 'rgba(15, 23, 42, 0.18)';
+  context.lineWidth = size * 0.012;
+  context.stroke();
+
+  context.restore();
+}
+
 function getMarkerTexture(src: string | undefined, accentColor: string, badgeCount = 1) {
   const cacheKey = `${src ?? 'fallback'}|${accentColor}|${badgeCount}`;
   const cachedTexture = markerTextureCache.get(cacheKey);
@@ -123,6 +167,37 @@ function getMarkerTexture(src: string | undefined, accentColor: string, badgeCou
     };
     image.src = src;
   }
+
+  markerTextureCache.set(cacheKey, texture);
+
+  return texture;
+}
+
+function getHeartMarkerTexture(accentColor: string, badgeCount = 1) {
+  const cacheKey = `heart|${accentColor}|${badgeCount}`;
+  const cachedTexture = markerTextureCache.get(cacheKey);
+
+  if (cachedTexture) return cachedTexture;
+
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    const fallbackTexture = new THREE.Texture();
+    markerTextureCache.set(cacheKey, fallbackTexture);
+    return fallbackTexture;
+  }
+
+  drawPinTexture(context, size, accentColor, undefined, badgeCount);
+  drawHeartGlyph(context, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
 
   markerTextureCache.set(cacheKey, texture);
 
@@ -198,7 +273,10 @@ export function LoveGlobe({ places, onOpenMap, onOpenPlace }: LoveGlobeProps) {
 
       const pin = new THREE.Sprite(
         new THREE.SpriteMaterial({
-          map: getMarkerTexture(place.imageSrc || '/logo/logo-single.png', color, badgeCount),
+          map:
+            place.markerVariant === 'heart'
+              ? getHeartMarkerTexture(color, badgeCount)
+              : getMarkerTexture(place.imageSrc || '/logo/logo-single.png', color, badgeCount),
           transparent: true,
           depthWrite: false,
         })
@@ -307,11 +385,11 @@ export function LoveGlobe({ places, onOpenMap, onOpenPlace }: LoveGlobeProps) {
     <Stack direction="row" spacing={1.5} sx={{ mt: 2, opacity: 0.85 }}>
       <Stack direction="row" spacing={0.75} alignItems="center">
         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#4f8cff' }} />
-        <Typography variant="caption">Visited</Typography>
+        <Typography variant="caption">Posećeno</Typography>
       </Stack>
       <Stack direction="row" spacing={0.75} alignItems="center">
         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ffb347' }} />
-        <Typography variant="caption">Wishlist</Typography>
+        <Typography variant="caption">Lista želja</Typography>
       </Stack>
     </Stack>
   );

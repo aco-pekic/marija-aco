@@ -20,7 +20,7 @@ export function SearchNotFound({ query, sx, slotProps, ...other }: SearchNotFoun
   if (!query) {
     return (
       <Typography variant="body2" {...slotProps?.description}>
-        Please enter keywords
+        Unesite ključne reči
       </Typography>
     );
   }
@@ -49,14 +49,14 @@ export function SearchNotFound({ query, sx, slotProps, ...other }: SearchNotFoun
             : [slotProps?.title?.sx]),
         ]}
       >
-        Not found
+        Nije pronađeno
       </Typography>
 
       <Typography variant="body2" {...slotProps?.description}>
-        No results found for &nbsp;
+        Nema rezultata za&nbsp;
         <strong>{`"${query}"`}</strong>
         .
-        <br /> Try checking for typos or using complete words.
+        <br /> Proveri da li ima grešaka u kucanju ili probaj sa punim rečima.
       </Typography>
     </Box>
   );

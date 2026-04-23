@@ -26,6 +26,7 @@ export type DashboardMemoryDraft = {
   date: string;
   imageFile: File;
   location: DashboardLocation;
+  addedBy?: DashboardPerson;
 };
 
 export type DashboardMemory = {
@@ -35,12 +36,53 @@ export type DashboardMemory = {
   date: string;
   imageSrc: string;
   location: DashboardLocation;
+  addedBy?: DashboardPerson;
+  sharedNote?: string;
+  updatedAt?: string;
+  photoCount?: number;
+};
+
+export type DashboardMemoryPhoto = {
+  id: string;
+  imageSrc: string;
+  caption?: string;
+  sortOrder: number;
+  createdAt?: string;
+};
+
+export type DashboardMemoryPhotoUpdateInput = {
+  id: string;
+  imageSrc: string;
+  caption?: string;
+  sortOrder: number;
+};
+
+export type DashboardMemoryDetails = DashboardMemory & {
+  photos: DashboardMemoryPhoto[];
+  previousMemory: DashboardMemory | null;
+  nextMemory: DashboardMemory | null;
+  relatedMemories: DashboardMemory[];
+};
+
+export type DashboardMemoryUpdateInput = {
+  title?: string;
+  description?: string;
+  date?: string;
+  sharedNote?: string;
+  coverImageSrc?: string;
+  photos?: DashboardMemoryPhotoUpdateInput[];
 };
 
 export type DashboardLocation = {
   name: string;
   coordinates: [lat: number, lng: number];
   source: 'device' | 'search';
+};
+
+export type DashboardWish = {
+  id: string;
+  location: DashboardLocation;
+  note?: string;
 };
 
 export type DashboardMediaTarget = 'hero' | 'marija' | 'aco';

@@ -43,6 +43,9 @@ export const paths = {
   // DASHBOARD
   dashboard: {
     root: ROOTS.DASHBOARD,
+    timeline: `${ROOTS.DASHBOARD}/timeline`,
+    map: `${ROOTS.DASHBOARD}/map`,
+    memoryDetails: (memoryId: string) => `${ROOTS.DASHBOARD}/memories/${memoryId}`,
     two: `${ROOTS.DASHBOARD}/two`,
     three: `${ROOTS.DASHBOARD}/three`,
     group: {

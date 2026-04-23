@@ -1,9 +1,6 @@
 import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
 
 import { AvatarWithGlow } from './avatar-with-glow';
 
@@ -36,12 +33,12 @@ export function DashboardHero({
       sx={(theme) => ({
         position: 'relative',
         overflow: 'hidden',
-        height: 250,
+        height: 350,
         cursor: 'pointer',
         borderRadius: { xs: 0, sm: 3 },
         px: { xs: 2, sm: 3, md: 4 },
         pt: { xs: 3, md: 4 },
-        pb: { xs: 8, md: 9 },
+        pb: { xs: 12, md: 14 },
         outline: 'none',
         border: {
           xs: 'none',
@@ -57,10 +54,11 @@ export function DashboardHero({
         sx={(theme) => ({
           position: 'absolute',
           inset: 0,
+          willChange: 'transform',
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'blur(18px) saturate(1.15)',
+          backgroundPosition: 'center 40%',
+          filter: 'blur(0.1px) saturate(1.15)',
           transform: 'scale(1.12)',
           opacity: 0.95,
           '&::after': {
@@ -69,7 +67,7 @@ export function DashboardHero({
             inset: 0,
             background: `linear-gradient(180deg,
               ${varAlpha(theme.vars.palette.background.defaultChannel, 0.35)} 0%,
-              ${varAlpha(theme.vars.palette.background.defaultChannel, 0.86)} 72%,
+              ${varAlpha(theme.vars.palette.background.defaultChannel, 0.46)} 72%,
               ${theme.vars.palette.background.default} 100%)`,
           },
         })}
@@ -91,32 +89,13 @@ export function DashboardHero({
       />
 
       <Box sx={{ position: 'relative' }}>
-        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
-          <IconButton
-            size="small"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenHero();
-            }}
-            sx={(theme) => ({
-              color: theme.vars.palette.common.white,
-              bgcolor: varAlpha(theme.vars.palette.common.blackChannel, 0.24),
-              backdropFilter: 'blur(8px)',
-              '&:hover': { bgcolor: varAlpha(theme.vars.palette.common.blackChannel, 0.36) },
-            })}
-          >
-            <Typography variant="caption" sx={{ fontWeight: 700, px: 0.5 }}>
-              View
-            </Typography>
-          </IconButton>
-        </Stack>
-
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             alignItems: 'center',
             gap: 2,
+            mt: 3,
             mb: 0,
           }}
         >

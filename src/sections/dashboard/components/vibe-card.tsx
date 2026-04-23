@@ -1,16 +1,13 @@
+import { useRef, useState } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
-import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import Popover from '@mui/material/Popover';
-import Collapse from '@mui/material/Collapse';
 import TextField from '@mui/material/TextField';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
+import { useTheme, IconButton } from '@mui/material';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -55,218 +52,168 @@ const vibeEmojis = [
   '🧸',
 ] as const;
 
+function pickRandomEmoji(currentEmoji?: string) {
+  const available = currentEmoji
+    ? vibeEmojis.filter((emoji) => emoji !== currentEmoji)
+    : [...vibeEmojis];
+
+  return available[Math.floor(Math.random() * available.length)] ?? vibeEmojis[0];
+}
+
 type Props = {
   title: string;
   value: Vibe;
-  onChange: (next: Vibe) => void;
+  onChange?: (next: Vibe) => void;
   forceNoteEditor?: boolean;
+  editable?: boolean;
 };
 
-export function VibeCard({ title, value, onChange, forceNoteEditor }: Props) {
+const ROSE_CHANNELS = '198 91 124';
+const PLUM_CHANNELS = '94 55 80';
+
+export function VibeCard({
+  title: _title,
+  value,
+  onChange,
+  forceNoteEditor: _forceNoteEditor,
+  editable = true,
+}: Props) {
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const isOpen = !!anchorEl;
-
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [isEditing, setIsEditing] = useState(() => !!forceNoteEditor || !!value.text.trim());
+  void _title;
+  void _forceNoteEditor;
 
-  useEffect(() => {
-    if (forceNoteEditor) setIsEditing(true);
-  }, [forceNoteEditor]);
-
-  useEffect(() => {
-    if (!isEditing) return undefined;
-    const timeoutId = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [isEditing]);
-
-  const pickRandomEmoji = () => {
-    if (vibeEmojis.length < 2) return value.emoji;
-
-    let next = value.emoji;
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const candidate = vibeEmojis[Math.floor(Math.random() * vibeEmojis.length)];
-      if (candidate !== value.emoji) {
-        next = candidate;
-        break;
-      }
-    }
-    return next;
-  };
+  const updateValue = (next: Vibe) => onChange?.(next);
 
   return (
-    <Card
-      sx={(theme) => ({
-        overflow: 'hidden',
-        position: 'relative',
-        borderRadius: 2,
-        bgcolor: varAlpha(theme.vars.palette.background.paperChannel, 0.38),
-        backdropFilter: 'blur(12px)',
-        border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.10)}`,
-        boxShadow: `0 12px 32px -18px ${varAlpha(theme.vars.palette.common.blackChannel, 0.8)}`,
-      })}
-    >
-      <Box
-        sx={(theme) => ({
-          p: 2,
-          position: 'relative',
-          '&::before': theme.mixins.borderGradient({
-            padding: '1px',
-            color: `linear-gradient(135deg, ${varAlpha(
-              theme.vars.palette.secondary.mainChannel,
-              0.22
-            )}, ${varAlpha(theme.vars.palette.primary.mainChannel, 0.18)})`,
-          }),
-        })}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 1.25 }}>
-          <Typography variant="subtitle2" sx={{ flex: '1 1 auto' }}>
-            {title}
-          </Typography>
-
-          <Button
-            size="small"
-            variant="text"
-            onClick={(event) => setAnchorEl(event.currentTarget)}
-            sx={(theme) => ({
-              minWidth: 38,
-              px: 1,
-              borderRadius: 1.25,
-              color: theme.vars.palette.common.white,
-              bgcolor: varAlpha(theme.vars.palette.common.whiteChannel, 0.08),
-              '&:hover': { bgcolor: varAlpha(theme.vars.palette.common.whiteChannel, 0.12) },
-            })}
-          >
-            <Box component="span" sx={{ fontSize: 16 }}>
-              {value.emoji}
-            </Box>
-          </Button>
-
-          <Popover
-            anchorEl={anchorEl}
-            open={isOpen}
-            onClose={() => setAnchorEl(null)}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            slotProps={{
-              paper: {
-                sx: (theme) => ({
-                  mt: 1,
-                  width: 320,
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  bgcolor: theme.vars.palette.background.paper,
-                  border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.08)}`,
-                }),
+    <Box sx={{ position: 'relative' }}>
+      <Stack spacing={2.5} alignItems="center">
+        {/* Veliki Emoji Prikaz */}
+        <ButtonBase
+          onClick={(e) => editable && setAnchorEl(e.currentTarget)}
+          sx={{
+            width: 100,
+            height: 100,
+            borderRadius: '50%',
+            fontSize: 48,
+            bgcolor: varAlpha(ROSE_CHANNELS, 0.05),
+            border: `2px solid ${varAlpha(ROSE_CHANNELS, 0.1)}`,
+            boxShadow: `0 12px 32px -12px ${varAlpha(ROSE_CHANNELS, 0.3)}`,
+            transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            ...(editable && {
+              '&:hover': {
+                transform: 'scale(1.1) rotate(5deg)',
+                bgcolor: varAlpha(ROSE_CHANNELS, 0.1),
               },
-            }}
-          >
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 1.25 }}>
-              <Typography variant="subtitle2">Pick a vibe</Typography>
-              <Button
-                size="small"
-                onClick={() => onChange({ ...value, emoji: pickRandomEmoji() })}
-                startIcon={<Iconify icon="solar:magic-stick-3-bold-duotone" width={18} />}
-                sx={{ borderRadius: 1.25 }}
-              >
-                Surprise me
-              </Button>
-            </Stack>
-
-            <Divider />
-
+            }),
+          }}
+        >
+          {value.emoji}
+          {editable && (
             <Box
               sx={{
-                p: 1.25,
-                display: 'grid',
-                gap: 0.75,
-                gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                bgcolor: 'white',
+                borderRadius: '50%',
+                p: 0.5,
+                boxShadow: 2,
               }}
             >
-              {vibeEmojis.map((emoji) => {
-                const isSelected = emoji === value.emoji;
-                return (
-                  <ButtonBase
-                    key={emoji}
-                    onClick={() => {
-                      onChange({ ...value, emoji });
-                      setAnchorEl(null);
-                    }}
-                    sx={(theme) => ({
-                      width: 34,
-                      height: 34,
-                      borderRadius: 1.25,
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontSize: 18,
-                      border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, isSelected ? 0.26 : 0.12)}`,
-                      bgcolor: varAlpha(
-                        theme.vars.palette.common.whiteChannel,
-                        isSelected ? 0.12 : 0.06
-                      ),
-                      transition: theme.transitions.create(['transform', 'background-color'], {
-                        duration: theme.transitions.duration.shorter,
-                      }),
-                      '&:hover': {
-                        transform: 'translateY(-1px)',
-                        bgcolor: varAlpha(theme.vars.palette.common.whiteChannel, 0.12),
-                      },
-                    })}
-                  >
-                    {emoji}
-                  </ButtonBase>
-                );
-              })}
+              <Iconify icon="solar:pen-bold" width={14} sx={{ color: 'primary.main' }} />
             </Box>
-          </Popover>
-        </Stack>
+          )}
+        </ButtonBase>
 
-        {!forceNoteEditor && !value.text.trim() && !isEditing ? (
-          <ButtonBase
-            onClick={() => setIsEditing(true)}
-            sx={(theme) => ({
-              width: 1,
-              p: 1.25,
-              borderRadius: 1.25,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1,
-              color: theme.vars.palette.common.white,
-              bgcolor: varAlpha(theme.vars.palette.common.whiteChannel, 0.06),
-              border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.08)}`,
-              '&:hover': { bgcolor: varAlpha(theme.vars.palette.common.whiteChannel, 0.10) },
-            })}
-          >
-            <Iconify icon="solar:pen-new-square-bold-duotone" width={18} />
-            <Box component="span" sx={{ typography: 'subtitle2' }}>
-              Add note
-            </Box>
-          </ButtonBase>
-        ) : (
-          <Collapse in={forceNoteEditor ? true : isEditing} timeout={180} unmountOnExit={!forceNoteEditor}>
-            <TextField
-              size="small"
-              inputRef={inputRef}
-              value={value.text}
-              onChange={(e) => onChange({ ...value, text: e.target.value })}
-              onBlur={() => {
-                if (forceNoteEditor) return;
-                if (!value.text.trim()) setIsEditing(false);
-              }}
-              placeholder='Npr. "Jedva čekam vikend"'
-              fullWidth
-              slotProps={{
-                input: {
-                  sx: (theme) => ({
-                    bgcolor: varAlpha(theme.vars.palette.common.whiteChannel, 0.06),
-                    borderRadius: 1.25,
-                  }),
+        {/* Note Unos */}
+        <Box sx={{ width: 1 }}>
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            inputRef={inputRef}
+            value={value.text}
+            onChange={(e) => updateValue({ ...value, text: e.target.value })}
+            placeholder="Napiši kratku poruku o tome kako se osećaš..."
+            disabled={!editable}
+            slotProps={{
+              input: {
+                sx: {
+                  borderRadius: 2,
+                  bgcolor: varAlpha(theme.vars.palette.background.neutralChannel, 0.5),
+                  border: 'none',
+                  '& fieldset': { border: 'none' },
+                  textAlign: 'center',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  color: `rgb(${PLUM_CHANNELS})`,
                 },
-              }}
-            />
-          </Collapse>
-        )}
-      </Box>
-    </Card>
+              },
+            }}
+          />
+        </Box>
+      </Stack>
+
+      {/* Emoji Picker Popover */}
+      <Popover
+        open={isOpen}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1.5,
+              p: 2,
+              width: 320,
+              borderRadius: 3,
+              boxShadow: `0 20px 40px ${varAlpha(PLUM_CHANNELS, 0.2)}`,
+              border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.1)}`,
+            },
+          },
+        }}
+      >
+        <Stack spacing={2}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+              Izaberi vibe
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => updateValue({ ...value, emoji: pickRandomEmoji(value.emoji) })}
+            >
+              <Iconify icon="solar:magic-stick-3-bold-duotone" sx={{ color: 'primary.main' }} />
+            </IconButton>
+          </Stack>
+
+          <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(6, 1fr)' }}>
+            {vibeEmojis.map((emoji) => (
+              <ButtonBase
+                key={emoji}
+                onClick={() => {
+                  updateValue({ ...value, emoji });
+                  setAnchorEl(null);
+                }}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 1.5,
+                  fontSize: 22,
+                  transition: '0.2s',
+                  bgcolor: emoji === value.emoji ? varAlpha(ROSE_CHANNELS, 0.1) : 'transparent',
+                  '&:hover': { bgcolor: varAlpha(ROSE_CHANNELS, 0.05), transform: 'scale(1.2)' },
+                }}
+              >
+                {emoji}
+              </ButtonBase>
+            ))}
+          </Box>
+        </Stack>
+      </Popover>
+    </Box>
   );
 }

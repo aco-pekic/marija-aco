@@ -5,6 +5,8 @@ import Stack from '@mui/material/Stack';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import { useTheme } from '@mui/material/styles';
+import { CircularProgress } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -15,10 +17,11 @@ import { Iconify } from 'src/components/iconify';
 
 import { VibeCard } from './vibe-card';
 
-import type { Vibe } from '../types';
+import type { Vibe, DashboardPerson } from '../types';
 
 type Props = {
   open: boolean;
+  currentPerson: DashboardPerson;
   marija: Vibe;
   aco: Vibe;
   onClose: () => void;
@@ -28,8 +31,11 @@ type Props = {
   saveError?: string | null;
 };
 
+const ROSE_CHANNELS = '198 91 124';
+
 export function TodayVibeDialog({
   open,
+  currentPerson,
   marija,
   aco,
   onClose,
@@ -38,60 +44,102 @@ export function TodayVibeDialog({
   isSaving = false,
   saveError,
 }: Props) {
+  const theme = useTheme();
+  const isMarija = currentPerson === 'marija';
+  const activeTitle = isMarija ? 'Marija' : 'Aco';
+  const activeVibe = isMarija ? marija : aco;
+  const handleChange = isMarija ? onChangeMarija : onChangeAco;
+  const canDeleteNote = !!activeVibe.text.trim();
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ pb: 2 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-          <Stack spacing={0.25}>
-            <Typography variant="h6">Today vibe</Typography>
-            <Typography variant="body2" sx={(theme) => ({ color: theme.vars.palette.text.secondary })}>
-              A tiny note for today — resets at midnight
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xs" // Smanjen za intimniji osećaj
+      PaperProps={{
+        sx: {
+          borderRadius: 4,
+          bgcolor: 'background.paper',
+          backgroundImage: `radial-gradient(circle at top right, ${varAlpha(ROSE_CHANNELS, 0.08)}, transparent 40%)`,
+        },
+      }}
+    >
+      <DialogTitle sx={{ p: 3, pb: 2 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Stack spacing={0.5}>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              Kako si danas?
             </Typography>
-            {saveError ? (
-              <Typography variant="caption" sx={(theme) => ({ color: theme.vars.palette.error.main })}>
-                {saveError}
-              </Typography>
-            ) : isSaving ? (
-              <Typography variant="caption" sx={(theme) => ({ color: theme.vars.palette.text.secondary })}>
-                Saving changes…
-              </Typography>
-            ) : null}
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}
+            >
+              {activeTitle} · Raspoloženje
+            </Typography>
           </Stack>
-          <IconButton onClick={onClose}>
-            <Iconify icon="solar:close-circle-bold" />
+          <IconButton onClick={onClose} sx={{ bgcolor: 'background.neutral' }}>
+            <Iconify icon="solar:close-circle-bold-duotone" />
           </IconButton>
         </Stack>
       </DialogTitle>
 
-      <Divider />
+      <DialogContent sx={{ p: 3, pt: 0 }}>
+        {saveError && (
+          <Box sx={{ mb: 2, p: 1, borderRadius: 1, bgcolor: 'error.soft', color: 'error.main' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+              {saveError}
+            </Typography>
+          </Box>
+        )}
 
-      <DialogContent sx={{ pt: 2.5 }}>
-        <Box
-          sx={(theme) => ({
-            display: 'grid',
-            gap: 2,
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-          })}
-        >
-          <VibeCard title="Marija" value={marija} onChange={onChangeMarija} forceNoteEditor />
-          <VibeCard title="Aco" value={aco} onChange={onChangeAco} forceNoteEditor />
-        </Box>
+        <VibeCard title={activeTitle} value={activeVibe} onChange={handleChange} forceNoteEditor />
       </DialogContent>
 
-      <DialogActions sx={{ p: 2 }}>
-        <Button variant="outlined" color="inherit" onClick={onClose}>
-          Close
-        </Button>
-        <Button
-          variant="contained"
-          onClick={onClose}
-          startIcon={<Iconify icon="solar:check-circle-bold-duotone" />}
-          sx={(theme) => ({
-            boxShadow: `0 18px 40px -22px ${varAlpha(theme.vars.palette.primary.mainChannel, 0.85)}`,
-          })}
-        >
-          Done
-        </Button>
+      <Divider sx={{ borderStyle: 'dashed' }} />
+
+      <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
+        <Box>
+          {canDeleteNote && (
+            <IconButton
+              color="error"
+              onClick={() => {
+                if (window.confirm('Obrisati poruku?')) handleChange({ ...activeVibe, text: '' });
+              }}
+              sx={{ bgcolor: varAlpha('255 76 97', 0.1) }}
+            >
+              <Iconify icon="solar:trash-bin-trash-bold-duotone" width={20} />
+            </IconButton>
+          )}
+        </Box>
+
+        <Stack direction="row" spacing={1.5}>
+          <Button color="inherit" sx={{ fontWeight: 700 }} onClick={onClose}>
+            Odustani
+          </Button>
+          <Button
+            variant="contained"
+            onClick={onClose}
+            disabled={isSaving}
+            startIcon={
+              isSaving ? <CircularProgress size={18} /> : <Iconify icon="solar:check-circle-bold" />
+            }
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              fontWeight: 800,
+              background: `linear-gradient(135deg, rgb(${ROSE_CHANNELS}) 0%, #ff84a4 100%)`,
+              boxShadow: `0 8px 20px ${varAlpha(ROSE_CHANNELS, 0.3)}`,
+            }}
+          >
+            {isSaving ? 'Čuvam...' : 'Gotovo'}
+          </Button>
+        </Stack>
       </DialogActions>
     </Dialog>
   );

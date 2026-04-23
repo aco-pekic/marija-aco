@@ -2,20 +2,38 @@ import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import { useTheme } from '@mui/material/styles';
 import ButtonBase from '@mui/material/ButtonBase';
+import Typography from '@mui/material/Typography';
 
 import { Iconify } from 'src/components/iconify';
 
+// --- Color Channels ---
+const ROSE_CHANNELS = '198 91 124';
+const PLUM_CHANNELS = '94 55 80';
+
 type Props = {
+  currentPath?: string;
   onHome: () => void;
+  onTimeline: () => void; // Novo
   onAdd: () => void;
+  onMap: () => void; // Novo
   onAddNote: () => void;
 };
 
-export function DashboardBottomNav({ onHome, onAdd, onAddNote }: Props) {
+export function DashboardBottomNav({
+  currentPath,
+  onHome,
+  onTimeline,
+  onAdd,
+  onMap,
+  onAddNote,
+}: Props) {
+  const theme = useTheme();
+
   return (
     <Box
-      sx={(theme) => ({
+      sx={{
         position: 'fixed',
         left: 0,
         right: 0,
@@ -24,91 +42,112 @@ export function DashboardBottomNav({ onHome, onAdd, onAddNote }: Props) {
         display: { xs: 'flex', md: 'none' },
         justifyContent: 'center',
         px: 2,
-        pt: 1.25,
-        pb: `calc(env(safe-area-inset-bottom) + ${theme.spacing(1.25)})`,
+        pb: `calc(env(safe-area-inset-bottom) + ${theme.spacing(2)})`,
         pointerEvents: 'none',
-      })}
+      }}
     >
       <Paper
         elevation={0}
-        sx={(theme) => ({
+        sx={{
           width: 1,
-          maxWidth: 520,
+          maxWidth: 400,
+          height: 64,
           borderRadius: 999,
-          overflow: 'hidden',
           pointerEvents: 'auto',
-          border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.10)}`,
-          bgcolor: varAlpha(theme.vars.palette.background.paperChannel, 0.75),
-          backdropFilter: 'blur(18px)',
-          boxShadow: `0 20px 50px -24px ${varAlpha(theme.vars.palette.common.blackChannel, 0.8)}`,
-        })}
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          px: 1,
+          border: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.12)}`,
+          bgcolor: varAlpha(theme.vars.palette.background.paperChannel, 0.8),
+          backdropFilter: 'blur(20px)',
+          boxShadow: `0 24px 48px -12px ${varAlpha(PLUM_CHANNELS, 0.3)}`,
+        }}
       >
-        <Box
+        {/* Početna */}
+        <NavButton
+          icon="solar:home-smile-bold-duotone"
+          label="Home"
+          onClick={onHome}
+          active={currentPath === '/dashboard'}
+        />
+
+        {/* Timeline */}
+        <NavButton
+          icon="solar:history-bold-duotone"
+          label="Timeline"
+          onClick={onTimeline}
+          active={currentPath === '/dashboard/timeline'}
+        />
+
+        {/* Centralno "DODAJ" Dugme */}
+        <ButtonBase
+          onClick={onAdd}
           sx={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr auto',
-            alignItems: 'center',
+            width: 52,
+            height: 52,
+            borderRadius: '50%',
+            color: 'common.white',
+            background: `linear-gradient(135deg, rgb(${ROSE_CHANNELS}) 0%, #ff84a4 100%)`,
+            boxShadow: `0 8px 16px ${varAlpha(ROSE_CHANNELS, 0.4)}`,
+            transition: theme.transitions.create(['transform', 'box-shadow']),
+            '&:active': { transform: 'scale(0.9)' },
           }}
         >
-          <ButtonBase
-            onClick={onHome}
-            sx={(theme) => ({
-              py: 1.5,
-              px: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              justifyContent: 'center',
-              color: theme.vars.palette.text.primary,
-            })}
-          >
-            <Iconify icon="solar:home-angle-2-bold-duotone" width={22} />
-            <Box component="span" sx={{ typography: 'subtitle2' }}>
-              Home
-            </Box>
-          </ButtonBase>
+          <Iconify icon="solar:add-circle-bold" width={28} />
+        </ButtonBase>
 
-          <ButtonBase
-            onClick={onAddNote}
-            sx={(theme) => ({
-              py: 1.5,
-              px: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              justifyContent: 'center',
-              color: theme.vars.palette.text.primary,
-              borderLeft: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.08)}`,
-              borderRight: `1px solid ${varAlpha(theme.vars.palette.common.whiteChannel, 0.08)}`,
-            })}
-          >
-            <Iconify icon="solar:notes-bold-duotone" width={22} />
-            <Box component="span" sx={{ typography: 'subtitle2' }}>
-              Note
-            </Box>
-          </ButtonBase>
+        {/* Mapa */}
+        <NavButton
+          icon="solar:map-point-bold-duotone"
+          label="Mapa"
+          onClick={onMap}
+          active={currentPath === '/dashboard/map'}
+        />
 
-          <ButtonBase
-            onClick={onAdd}
-            sx={(theme) => ({
-              py: 1.5,
-              px: 2.25,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              justifyContent: 'center',
-              color: theme.vars.palette.common.white,
-              bgcolor: varAlpha(theme.vars.palette.primary.mainChannel, 0.92),
-              '&:hover': { bgcolor: theme.vars.palette.primary.main },
-            })}
-          >
-            <Iconify icon="solar:add-circle-bold" width={22} />
-            <Box component="span" sx={{ typography: 'subtitle2' }}>
-              Add
-            </Box>
-          </ButtonBase>
-        </Box>
+        {/* Poruka / Note */}
+        <NavButton icon="solar:letter-bold-duotone" label="Poruka" onClick={onAddNote} />
       </Paper>
     </Box>
+  );
+}
+
+// --- Pomoćna komponenta za dugmiće ---
+function NavButton({
+  icon,
+  label,
+  onClick,
+  active = false,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  const theme = useTheme();
+
+  return (
+    <ButtonBase
+      onClick={onClick}
+      sx={{
+        flexDirection: 'column',
+        width: 56,
+        height: 56,
+        borderRadius: '50%',
+        gap: 0.25,
+        color: active ? `rgb(${ROSE_CHANNELS})` : 'text.secondary',
+        bgcolor: active ? varAlpha(ROSE_CHANNELS, 0.08) : 'transparent',
+        transition: theme.transitions.create(['color', 'background-color', 'transform']),
+        '&:active': { color: `rgb(${ROSE_CHANNELS})`, transform: 'scale(0.95)' },
+      }}
+    >
+      <Iconify icon={icon} width={24} />
+      <Typography
+        variant="caption"
+        sx={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}
+      >
+        {label}
+      </Typography>
+    </ButtonBase>
   );
 }

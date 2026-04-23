@@ -64,7 +64,7 @@ export function DashboardLoveQuote({ enabled }: Props) {
     if (!canFetch) return undefined;
 
     if (DASHBOARD_SOULMATE_QUOTES.length === 0) {
-      setError('No quotes configured.');
+      setError('Nema podešenih citata.');
       return undefined;
     }
 
@@ -106,6 +106,7 @@ export function DashboardLoveQuote({ enabled }: Props) {
     <Card
       sx={(theme) => ({
         mt: 2.5,
+        mb: 3,
         borderRadius: 2,
         overflow: 'hidden',
         position: 'relative',
@@ -153,7 +154,7 @@ export function DashboardLoveQuote({ enabled }: Props) {
                 variant="caption"
                 sx={(theme) => ({ color: theme.vars.palette.text.secondary })}
               >
-                Always random · Refreshes every 6 hours
+                Uvek nasumično · Menja se na svakih 6 sati
               </Typography>
             </Stack>
           </Stack>
@@ -180,7 +181,7 @@ export function DashboardLoveQuote({ enabled }: Props) {
             }
             sx={{ borderRadius: 1.25 }}
           >
-            New
+            Novo
           </Button>
         </Stack>
 
@@ -218,7 +219,7 @@ export function DashboardLoveQuote({ enabled }: Props) {
             variant="body2"
             sx={(theme) => ({ color: theme.vars.palette.text.secondary })}
           >
-            Loading your first love quote…
+            Učitavam prvi citat…
           </Typography>
         )}
       </Stack>

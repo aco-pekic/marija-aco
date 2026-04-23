@@ -1,13 +1,10 @@
-import axios, { endpoints } from 'src/lib/axios';
-
 import { setSession } from './utils';
-import { JWT_STORAGE_KEY } from './constant';
 
 // ----------------------------------------------------------------------
 
 export type SignInParams = {
-  email: string;
   password: string;
+  email?: string;
 };
 
 export type SignUpParams = {
@@ -20,65 +17,27 @@ export type SignUpParams = {
 /** **************************************
  * Sign in
  *************************************** */
-export const signInWithPassword = async ({ email, password }: SignInParams): Promise<void> => {
-  try {
-    const params = { email, password };
+export const signInWithPassword = async ({ password }: SignInParams): Promise<void> => {
+  const normalizedPassword = password.trim().toLowerCase();
 
-    const res = await axios.post(endpoints.auth.signIn, params);
-
-    const { accessToken } = res.data;
-
-    if (!accessToken) {
-      throw new Error('Access token not found in response');
-    }
-
-    setSession(accessToken);
-  } catch (error) {
-    console.error('Error during sign in:', error);
-    throw error;
+  if (normalizedPassword === 'marija' || normalizedPassword === 'aco') {
+    await setSession(normalizedPassword);
+    return;
   }
+
+  throw new Error('Wrong password. Use "marija" or "aco".');
 };
 
 /** **************************************
  * Sign up
  *************************************** */
-export const signUp = async ({
-  email,
-  password,
-  firstName,
-  lastName,
-}: SignUpParams): Promise<void> => {
-  const params = {
-    email,
-    password,
-    firstName,
-    lastName,
-  };
-
-  try {
-    const res = await axios.post(endpoints.auth.signUp, params);
-
-    const { accessToken } = res.data;
-
-    if (!accessToken) {
-      throw new Error('Access token not found in response');
-    }
-
-    sessionStorage.setItem(JWT_STORAGE_KEY, accessToken);
-  } catch (error) {
-    console.error('Error during sign up:', error);
-    throw error;
-  }
+export const signUp = async (_params: SignUpParams): Promise<void> => {
+  throw new Error('Sign up is disabled. Use password "marija" or "aco" on sign in.');
 };
 
 /** **************************************
  * Sign out
  *************************************** */
 export const signOut = async (): Promise<void> => {
-  try {
-    await setSession(null);
-  } catch (error) {
-    console.error('Error during sign out:', error);
-    throw error;
-  }
+  await setSession(null);
 };

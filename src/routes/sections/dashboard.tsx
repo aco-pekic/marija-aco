@@ -15,6 +15,9 @@ import { usePathname } from '../hooks';
 // ----------------------------------------------------------------------
 
 const IndexPage = lazy(() => import('src/pages/dashboard/one'));
+const MemoryDetailsPage = lazy(() => import('src/pages/dashboard/memory-details'));
+const TimelinePage = lazy(() => import('src/pages/dashboard/timeline'));
+const MapPage = lazy(() => import('../../pages/dashboard/map'));
 const PageTwo = lazy(() => import('src/pages/dashboard/two'));
 const PageThree = lazy(() => import('src/pages/dashboard/three'));
 const PageFour = lazy(() => import('src/pages/dashboard/four'));
@@ -44,6 +47,9 @@ export const dashboardRoutes: RouteObject[] = [
     element: CONFIG.auth.skip ? dashboardLayout() : <AuthGuard>{dashboardLayout()}</AuthGuard>,
     children: [
       { element: <IndexPage />, index: true },
+      { path: 'timeline', element: <TimelinePage /> },
+      { path: 'map', element: <MapPage /> },
+      { path: 'memories/:memoryId', element: <MemoryDetailsPage /> },
       { path: 'two', element: <PageTwo /> },
       { path: 'three', element: <PageThree /> },
       {

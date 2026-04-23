@@ -31,12 +31,12 @@ export function DashboardMapDialog({ open, places, onClose, onSelectPlace }: Pro
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 2 }}>
           <Stack spacing={0.25}>
-            <Typography variant="h6">Your map</Typography>
+            <Typography variant="h6">Mapa</Typography>
             <Typography
               variant="body2"
               sx={(theme) => ({ color: varAlpha(theme.vars.palette.text.primaryChannel, 0.68) })}
             >
-              Visited & wishlist places
+              Posećena i željena mesta
             </Typography>
           </Stack>
           <IconButton onClick={onClose}>
@@ -111,7 +111,7 @@ export function DashboardMapDialog({ open, places, onClose, onSelectPlace }: Pro
                     variant="caption"
                     sx={(theme) => ({ color: varAlpha(theme.vars.palette.text.primaryChannel, 0.65) })}
                   >
-                    {place.status === 'visited' ? 'Visited' : 'Wishlist'}
+                    {place.status === 'visited' ? 'Posećeno' : 'Lista želja'}
                   </Typography>
                 </Button>
               ))}

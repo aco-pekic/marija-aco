@@ -1,0 +1,21 @@
+{
+  "name": "Marija Aco",
+  "short_name": "Marija Aco",
+  "icons": [
+    {
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#f0a8a8",
+  "background_color": "#f0a8a8",
+  "display": "standalone"
+}
