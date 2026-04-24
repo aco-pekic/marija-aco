@@ -283,7 +283,7 @@ export function MapView() {
       {/* --- Header Section --- */}
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Box>
-          <Typography variant="h3" sx={{ fontWeight: 900, color: `rgb(${PLUM_CHANNELS})` }}>
+          <Typography variant="h3" sx={{ fontWeight: 900 }}>
             Naša Mapa
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>

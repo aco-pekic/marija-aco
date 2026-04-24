@@ -106,7 +106,7 @@ export function TimelineView() {
     <DashboardContent maxWidth="xl" sx={{ pb: { xs: 3, md: 5 } }}>
       <Stack spacing={1} sx={{ width: 1, maxWidth: { xs: '100%', md: 920 }, mx: { md: 'auto' } }}>
         <Typography variant="h3" sx={{ fontWeight: 900, letterSpacing: -0.8 }}>
-          Scrapbook Timeline
+          Vremeplov
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Naši mali trenuci, složeni kroz vreme.

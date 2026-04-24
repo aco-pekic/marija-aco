@@ -55,7 +55,8 @@ export const navData: NavSectionProps['data'] = [
         path: paths.dashboard.root,
         icon: ICONS.dashboard,
       },
-      { title: 'Timeline', path: paths.dashboard.timeline, icon: ICONS.calendar },
+      { title: 'Vremeplov', path: paths.dashboard.timeline, icon: ICONS.calendar },
+      { title: 'Mapa', path: paths.dashboard.map, icon: ICONS.tour },
     ],
   },
 ];

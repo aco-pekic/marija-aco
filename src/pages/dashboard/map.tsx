@@ -4,7 +4,7 @@ import { CONFIG } from 'src/global-config';
 
 import { MapView } from 'src/sections/map/view/map-view';
 
-const metadata = { title: `Mapa | Dashboard - ${CONFIG.appName}` };
+const metadata = { title: `Mapa | ${CONFIG.appName}` };
 
 export default function Page() {
   return (
@@ -17,4 +17,3 @@ export default function Page() {
     </>
   );
 }
-

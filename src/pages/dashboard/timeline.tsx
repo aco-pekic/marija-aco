@@ -4,7 +4,7 @@ import { CONFIG } from 'src/global-config';
 
 import { TimelineView } from 'src/sections/timeline/view/timeline-view';
 
-const metadata = { title: `Timeline | Dashboard - ${CONFIG.appName}` };
+const metadata = { title: `Vremeplov | ${CONFIG.appName}` };
 
 export default function Page() {
   return (

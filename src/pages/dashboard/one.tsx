@@ -6,7 +6,7 @@ import { DashboardView } from 'src/sections/dashboard/view';
 
 // ----------------------------------------------------------------------
 
-const metadata = { title: `Page one | Dashboard - ${CONFIG.appName}` };
+const metadata = { title: `Početna | ${CONFIG.appName}` };
 
 export default function Page() {
   return (
