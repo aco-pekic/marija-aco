@@ -16,13 +16,7 @@ type Props = {
   onOpenNote?: () => void;
 };
 
-export function DashboardVibes({
-  authenticated,
-  marija,
-  aco,
-  currentPerson,
-  onOpenNote,
-}: Props) {
+export function DashboardVibes({ authenticated, marija, aco, currentPerson, onOpenNote }: Props) {
   const hasNotes = !!marija.text.trim() || !!aco.text.trim();
 
   return (
@@ -30,16 +24,6 @@ export function DashboardVibes({
       <Stack spacing={0.75} sx={{ mb: 1.5 }}>
         <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={2}>
           <Typography variant="h6">Današnja poruka</Typography>
-          <Typography
-            variant="caption"
-            sx={(theme) => ({
-              color: theme.vars.palette.text.secondary,
-              fontWeight: 700,
-              letterSpacing: 0.2,
-            })}
-          >
-            Resetuje se svaki dan
-          </Typography>
         </Stack>
         {hasNotes ? (
           <Stack
@@ -79,7 +63,9 @@ export function DashboardVibes({
             </Typography>
             {onOpenNote ? (
               <Button size="small" variant="contained" onClick={onOpenNote}>
-                {currentPerson === 'marija' ? 'Dodaj moju poruku (Marija)' : 'Dodaj moju poruku (Aco)'}
+                {currentPerson === 'marija'
+                  ? 'Dodaj moju poruku (Marija)'
+                  : 'Dodaj moju poruku (Aco)'}
               </Button>
             ) : null}
           </Stack>
