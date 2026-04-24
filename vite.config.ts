@@ -3,26 +3,25 @@ import checker from 'vite-plugin-checker';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // ----------------------------------------------------------------------
 
 const PORT = 8081;
 
 export default defineConfig({
-  plugins: [
-    react(),
-    checker({
-      typescript: true,
-      eslint: {
-        useFlatConfig: true,
-        lintCommand: 'eslint "./src/**/*.{js,jsx,ts,tsx}"',
-        dev: { logLevel: ['error'] },
-      },
-      overlay: {
-        position: 'tl',
-        initialIsOpen: false,
-      },
-    }),
-  ],
+  plugins: [react(), checker({
+    typescript: true,
+    eslint: {
+      useFlatConfig: true,
+      lintCommand: 'eslint "./src/**/*.{js,jsx,ts,tsx}"',
+      dev: { logLevel: ['error'] },
+    },
+    overlay: {
+      position: 'tl',
+      initialIsOpen: false,
+    },
+  }), cloudflare()],
   resolve: {
     alias: [
       {
